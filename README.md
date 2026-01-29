@@ -1,7 +1,8 @@
 # Complex-mediated evasion systems biology approach
 
-This repository contains the code used for data analysis in the publication:
+This repository contains the code used for data analysis in the publication:\
 **Modeling *Candida albicans* complex-mediated evasion and in silico treatment strategies: a systems biology approach** (submitted)
+
 Yann Bachelot, Carl-Magnus Svensson, Anastasia Solomatina, Josephine Schötz, Kerstin Hünniger-Ast, Oliver Kurzai, Marc Thilo Figge
 
 **Department**: Applied Systems Biology
@@ -19,10 +20,6 @@ Adolf-Reichwein-Straße 23
 ## License
 This project is licensed under the **BSD 2-Clause License**.  
 See the `LICENSE` file for details.
-
-## About
-This repository contains code related to the manuscript:
-
 
 ## Repository structure
 - **`ABM/`** — Agent-based model (ABM) framework and simulation code.
