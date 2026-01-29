@@ -29,7 +29,5 @@ This repository contains code related to the manuscript:
 - **`Image_analysis/`** — Pipelines for image analysis.
 
 ## Related repository (PDE model)
-The PDE model is maintained in a separate repository:  
-https://github.com/applied-systems-biology/AMP_evasion_PDE_model.git  
-With the corresponding publication:
-https://doi.org/10.1038/s41540-025-00559-1
+The PDE model is maintained in a separate repository: https://github.com/applied-systems-biology/AMP_evasion_PDE_model.git  
+With the corresponding publication: https://doi.org/10.1038/s41540-025-00559-1
