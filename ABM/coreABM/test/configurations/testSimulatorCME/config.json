@@ -1,0 +1,14 @@
+{
+  "Agent-Based-Framework": {
+    "runs": 1,
+    "number_of_threads": 1,
+    "seed": 42,
+    "simulator": "SimulatorCME",
+    "available_simulators": {
+      "SimulatorCME": {
+        "config_path": "../../configurations/testConfigs/testSimulatorCME",
+        "output_dir": "../../configurations/testConfigs/testSimulatorCME"
+      }
+    }
+  }
+}

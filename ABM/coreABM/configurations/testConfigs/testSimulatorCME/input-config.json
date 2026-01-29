@@ -1,0 +1,31 @@
+﻿{
+	"Agent-Based-Framework": {
+		"Rates": {
+			"nointerplay": {
+				"type": "ConstantRate",
+				"rate": -1.0
+			},
+			"unbinding": {
+				"type": "ConstantRate",
+				"rate": 0.1
+			},
+			"binding": {
+				"type": "ConstantRate",
+				"rate": 10000.0
+			},
+			"lysis": {
+				"type": "ConstantRate",
+				"rate": 1.0
+			},
+			"nointerplay-adherence": {
+				"type": "ConditionalRate",
+				"rate": 0.01,
+				"condition": "Amp"
+			},
+			"uptake": {
+				"type": "ConstantRate",
+				"rate": 10000.0
+			}
+		}
+	}
+}

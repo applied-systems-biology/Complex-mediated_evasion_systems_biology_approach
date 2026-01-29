@@ -1,0 +1,365 @@
+{
+  "Agent-Based-Framework": {
+    "topic": "test",
+    "timestepping": 1e-3,
+    "max_time": 5,
+    "dimensions": 3,
+    "use_interactions": true,
+    "Sites": [
+      {
+        "identifier": "cs1",
+        "boundary_condition": "ReflectingBoundaries",
+        "NeighbourhoodLocator": {
+          "type": "BalloonListNHLocator"
+        },
+        "type": "CuboidSite",
+        "CuboidSite": {
+          "x_range": [
+            -0.323,
+            0.323
+          ],
+          "y_range": [
+            -0.323,
+            0.323
+          ],
+          "z_range": [
+            -0.323,
+            0.323
+          ],
+          "flow": [
+            {
+              "agent": "AMP",
+              "rate": 0
+            }],
+          "stopping_criteria":[{
+            "threshold": 5,
+            "agent": "AMP",
+            "time": 10.00
+          }]
+        },
+        "AgentManager": {
+          "Types": [
+            "AMP",
+            "Defensive",
+            "Complex",
+            "Drug",
+            "Pathogenic_cell"
+          ],
+          "Agents": {
+            "Pathogenic_cell": {
+              "type": "Pathogenic_cell",
+              "initial_distribution": 1,
+              "number": 1,
+              "Movement": {
+                "type": "RandomWalk",
+                "speed": {
+                  "mean": 0,
+                  "stddev": 0
+                }
+              },
+              "Morphology": {
+                "color": "orangeTransp",
+                "SphericalMorphology": {
+                  "radius": 0.075,
+                  "stddev": 0.0
+                }
+              },
+              "Cell States": {
+                "InitialCellState": {},
+                "Death": {}
+              },
+              "Secretion":["Defensive"],
+              "Defensive":{
+                "type": "variable",
+                "rate": 100,
+                "mol_uptaken": "AMP",
+                "lag": 0.0
+              }
+            },
+            "AMP": {
+              "type": "AMP",
+              "initial_distribution": 0,
+              "input_lambda": 0,
+              "number": 3000,
+              "Movement": {
+                "type": "RandomWalk",
+                "diffusion_coefficient": 0.02251
+              },
+              "Morphology": {
+                "color": "blueTransp",
+                "SphericalMorphology": {
+                  "radius": 0.00104,
+                  "stddev": 0.0
+                }
+              },
+              "Cell States": {
+                "InitialCellState": {
+                  "next_states": {
+                    "Death": {
+                      "rate": "degrad_AMP"
+                    }
+                  }
+                },
+                "Death": {}
+              }
+            },
+            "Drug": {
+              "type": "Drug",
+              "initial_distribution": 0,
+              "input_lambda": 0,
+              "number": 3000,
+              "nb_receptor_blocked": 2,
+              "Movement": {
+                "type": "RandomWalk",
+                "diffusion_coefficient": 0
+              },
+              "Morphology": {
+                "color": "blueTransp",
+                "SphericalMorphology": {
+                  "radius": 0.00104,
+                  "stddev": 0.0
+                }
+              },
+              "Cell States": {
+                "InitialCellState": {
+                  "next_states": {
+                    "Death": {
+                      "rate": "degrad_Drug"
+                    }
+                  }
+                },
+                "Death": {}
+              }
+            },
+            "Defensive": {
+              "type": "Defensive",
+              "initial_distribution": 0,
+              "input_lambda": 0,
+              "number": 0,
+              "Movement": {
+                "type": "RandomWalk",
+                "diffusion_coefficient": 0.00701
+              },
+              "Morphology": {
+                "color": "redTransp",
+                "SphericalMorphology": {
+                  "radius": 0.00334,
+                  "stddev": 0.0
+                }
+              },
+              "Cell States": {
+                "InitialCellState": {
+                  "next_states": {
+                    "Death": {
+                      "rate": "degrad_Defensive"
+                    }
+                  }
+                },
+                "Death": {}
+              }
+            },
+            "Complex": {
+              "type": "Complex",
+              "initial_distribution": 0,
+              "number": 0,
+              "nb_receptor": 5,
+              "Movement": {
+                "type": "RandomWalk",
+                "diffusion_coefficient": 0.00534
+              },
+              "Morphology": {
+                "color": "greenTransp",
+                "SphericalMorphology": {
+                  "radius": 0.00438,
+                  "stddev": 0.0
+                }
+              },
+              "Cell States": {
+                "InitialCellState": {
+                  "next_states": {
+                    "Unbound_AMP": {
+                      "rate": "unbinding_AMP"
+                    },
+                    "Unbound_Drug": {
+                      "rate": "unbinding_Drug"
+                    },
+                    "Death": {
+                      "rate": "degrad_Complex"
+                    }
+                  }
+                },
+                "Death": {},
+                "Unbound_AMP": {},
+                "Unbound_Drug":{}
+              }
+            }
+          }
+        }
+      }
+    ],
+    "Interactions": {
+      "IdenticalCellsInteraction": {
+        "type": "IdenticalCellsInteraction",
+        "Interaction States": {
+          "InitialInteractionState": {
+            "next_states": {
+              "NoInterplay": {
+                "rate": "nointerplay"
+              }
+            }
+          },
+          "NoInterplay": {
+            "type": "Contacting"
+          }
+        }
+      },
+      "ComplexFormationInteraction_AMP": {
+        "type": "ComplexFormationInteraction",
+        "Conditions": {
+          "AMP": [],
+          "Defensive": []
+        },
+        "Interaction States": {
+          "InitialInteractionState": {
+            "type": "ComplexFormation",
+            "next_states": {
+              "Complex": {
+                "rate": "binding_AMP"
+              },
+              "NoInterplay": {
+                "rate": "nointerplay"
+              }
+            }
+          },
+          "Complex": {
+            "type": "ComplexFormation"
+          },
+          "NoInterplay": {
+            "type": "Contacting"
+          }
+        }
+      },
+      "ComplexExtensionInteraction_AMP": {
+        "type": "ComplexExtensionInteraction",
+        "Conditions": {
+          "AMP": [],
+          "Complex": []
+        },
+        "Interaction States": {
+          "InitialInteractionState": {
+            "type": "ComplexExtension",
+            "next_states": {
+              "Complex": {
+                "rate": "binding_AMP"
+              },
+              "NoInterplay": {
+                "rate": "nointerplay"
+              }
+            }
+          },
+          "Complex": {
+            "type": "ComplexExtension"
+          },
+          "NoInterplay": {
+            "type": "Contacting"
+          }
+        }
+      },
+      "ComplexFormationInteraction_Drug": {
+        "type": "ComplexFormationInteraction",
+        "Conditions": {
+          "Drug": [],
+          "Defensive": []
+        },
+        "Interaction States": {
+          "InitialInteractionState": {
+            "type": "ComplexFormation",
+            "next_states": {
+              "Complex": {
+                "rate": "binding_Drug"
+              },
+              "NoInterplay": {
+                "rate": "nointerplay"
+              }
+            }
+          },
+          "Complex": {
+            "type": "ComplexFormation"
+          },
+          "NoInterplay": {
+            "type": "Contacting"
+          }
+        }
+      },
+      "ComplexExtensionInteraction_Drug": {
+        "type": "ComplexExtensionInteraction",
+        "Conditions": {
+          "Drug": [],
+          "Complex": []
+        },
+        "Interaction States": {
+          "InitialInteractionState": {
+            "type": "ComplexExtension",
+            "next_states": {
+              "Complex": {
+                "rate": "binding_Drug"
+              },
+              "NoInterplay": {
+                "rate": "nointerplay"
+              }
+            }
+          },
+          "Complex": {
+            "type": "ComplexExtension"
+          },
+          "NoInterplay": {
+            "type": "Contacting"
+          }
+        }
+      },
+      "UptakeInteraction": {
+        "type": "UptakeInteraction",
+        "Conditions": {
+          "Pathogenic_cell": [],
+          "AMP": []
+        },
+        "Interaction States": {
+          "InitialInteractionState": {
+            "type": "Uptake",
+            "next_states": {
+              "Uptaken": {
+                "rate": "uptake"
+              },
+              "NoInterplay": {
+                "rate": "nointerplay"
+              }
+            }
+          },
+          "Uptaken": {
+            "type": "Uptake"
+          },
+          "NoInterplay": {
+            "type": "Contacting"
+          }
+        }
+      },
+      "AvoidanceInteraction": {
+        "type": "AvoidanceInteraction",
+        "Interaction States": {
+          "InitialInteractionState": {
+            "type": "InteractionType",
+            "next_states": {
+              "Avoidance": {
+                "rate": "nointerplay"
+              }
+            }
+          },
+          "Avoidance": {
+            "type": "Contacting",
+            "must_overhead": 0.0
+          }
+        }
+      }
+    }
+  }
+}

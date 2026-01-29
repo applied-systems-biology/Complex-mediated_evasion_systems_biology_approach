@@ -1,0 +1,11 @@
+{
+  "Agent-Based-Framework": {
+    "active_measurements": [
+      "agent-statistics%50",
+      "environment",
+      "lifetime-distribution",
+      "total-uptake%1",
+      "population-statistics%50"],
+    "cell_state_count": []
+  }
+}

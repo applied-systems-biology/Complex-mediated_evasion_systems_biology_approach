@@ -1,0 +1,55 @@
+﻿{
+	"Agent-Based-Framework": {
+		"Rates": {
+			"nointerplay": {
+				"type": "ConstantRate",
+				"rate": -1.0
+			},
+			"unbinding_AMP": {
+				"type": "ConstantRate",
+				"rate": 0.0044
+			},
+			"binding_AMP": {
+				"type": "ConstantRate",
+				"rate": 50
+			},
+			"unbinding_Drug": {
+				"type": "ConstantRate",
+				"rate": 0.0044
+			},
+			"binding_Drug": {
+				"type": "ConstantRate",
+				"rate": 50
+			},
+			"lysis": {
+				"type": "ConstantRate",
+				"rate": 1.0
+			},
+			"nointerplay-adherence": {
+				"type": "ConditionalRate",
+				"rate": 0.0,
+				"condition": "AMP"
+			},
+			"uptake": {
+				"type": "ConstantRate",
+				"rate": 10
+			},
+			"degrad_AMP":{
+				"type": "ConstantRate",
+				"rate": 0.0
+			},
+			"degrad_Complex":{
+				"type": "ConstantRate",
+				"rate": 0.0
+			},
+			"degrad_Defensive":{
+				"type": "ConstantRate",
+				"rate": 0.0
+			},
+			"degrad_Drug":{
+				"type": "ConstantRate",
+				"rate": 0.0
+			}
+		}
+	}
+}

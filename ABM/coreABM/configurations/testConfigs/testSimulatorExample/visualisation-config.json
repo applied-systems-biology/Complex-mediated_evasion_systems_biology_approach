@@ -1,0 +1,25 @@
+{
+  "Agent-Based-Framework": {
+    "activated": false,
+    "output_interval": 100,
+    "camera-position": [0, 0, 1000],
+    "camera-look_at": [0, 0, 0],
+    "camera-angle": 20.0,
+    "includeTimestamp": true,
+    "outputVideo": true,
+    "pxWidth": "1768",
+    "pxHeight": "1768",
+    "runId": 1,
+    "zStacksOn": false,
+    "zStackStart": -20,
+    "zStackEnd": 20,
+    "zStacksDepth": 1.0,
+    "Lightsources": {
+      "pos1": [0, 0, 3000],
+      "pos2": [0, 3000, 0],
+      "pos3": [500, 500, 500],
+      "pos4": [-500, 500, -500],
+      "pos5": [-500, -500, -500]
+    }
+  }
+}

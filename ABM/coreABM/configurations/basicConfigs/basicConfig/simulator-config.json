@@ -1,0 +1,171 @@
+{
+  "Agent-Based-Framework": {
+    "topic": "results",
+    "timestepping": 0.1,
+    "max_time": 100,
+    "dimensions": 2,
+    "use_interactions": true,
+    "stopping_criteria": ["FirstPassageTime"],
+    "Sites": [
+      {
+        "identifier": "cs1",
+        "boundary_condition": "ReflectingBoundaries",
+        "NeighbourhoodLocator": {
+          "type": "BalloonListNHLocator"
+        },
+        "type": "CuboidSite",
+        "CuboidSite": {
+          "x_range": [
+            -100.0,
+            100.0
+          ],
+          "y_range": [
+            -100.0,
+            100.0
+          ],
+          "z_range": [
+            -2.0,
+            2.0
+          ]
+        },
+        "AgentManager": {
+          "Types": ["ImmuneCell", "FungalCell"],
+          "Agents": {
+            "FungalCell": {
+              "type": "FungalCell",
+              "initial_distribution": 0,
+              "number": 5,
+              "Morphology": {
+                "color": "redTransp",
+                "SphericalMorphology": {
+                  "radius": 1.25,
+                  "stddev": 0.0
+                }
+              },
+              "Cell States": {
+                "InitialCellState": {
+                  "next_states": {
+                    "FungusResting": {
+                      "rate": "FungusResting"
+                    }
+                  }
+                },
+                "FungusResting": {
+                  "next_states": {
+                    "FungusSwelling": {
+                      "rate": "FungusSwelling"
+                    }
+                  }
+                },
+                "FungusSwelling": {},
+                "FungusPhagocytosed": {},
+                "Death": {}
+              }
+            },
+            "ImmuneCell": {
+              "type": "ImmuneCell",
+              "initial_distribution": 0,
+              "number": 10,
+              "Movement": {
+                "type": "PersistentRandomWalk",
+                "speed": {
+                  "mean": 4,
+                  "stddev": 0
+                },
+                "persistence_time": 6
+              },
+              "Morphology": {
+                "color": "greenTransp",
+                "SphericalMorphology": {
+                  "radius": 10.6,
+                  "stddev": 0.0
+                }
+              },
+              "Cell States": {
+                "InitialCellState": {},
+                "Death": {}
+              }
+            }
+          }
+        }
+      }
+    ],
+    "Interactions": {
+      "IdenticalCellsInteraction": {
+        "type": "IdenticalCellsInteraction",
+        "Interaction States": {
+          "InitialInteractionState": {
+            "next_states": {
+              "NoInterplay": {
+                "rate": "nointerplay"
+              }
+            }
+          },
+          "NoInterplay": {
+            "type": "Contacting"
+          }
+        }
+      },
+      "PhagocyteFungusInteraction": {
+        "type": "PhagocyteFungusInteraction",
+        "Conditions": {
+          "ImmuneCell": [],
+          "FungalCell": ["FungusResting","FungusSwelling"]
+        },
+        "Interaction States": {
+          "InitialInteractionState": {
+            "type": "InteractionType",
+            "next_states": {
+              "Phagocytose": {
+                "rate": "phagocytose"
+              }
+            }
+          },
+          "Phagocytose": {
+            "type": "Ingestion",
+            "next_states": {
+              "Lysis": {
+                "rate": "lysis"
+              }
+            }
+          },
+          "Adherence": {
+            "type": "Contacting",
+            "adhere": true,
+            "next_states": {
+              "NoInterplay": {
+                "rate": "nointerplay-adherence"
+              }
+            }
+          },
+          "Lysis": {
+            "type": "Ingestion"
+          },
+          "Pierce": {
+            "type": "Contacting"
+          },
+          "NoInterplay": {
+            "type": "Contacting"
+          }
+        }
+      },
+      "AvoidanceInteraction": {
+        "type": "AvoidanceInteraction",
+        "Interaction States": {
+          "InitialInteractionState": {
+            "type": "InteractionType",
+            "next_states": {
+              "Avoidance": {
+                "rate": "nointerplay"
+              }
+            }
+          },
+          "Avoidance": {
+            "type": "Contacting",
+            "must_overhead": 0.0
+          }
+        }
+      }
+    }
+  }
+}

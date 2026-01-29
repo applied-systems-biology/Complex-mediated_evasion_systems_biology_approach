@@ -1,0 +1,88 @@
+{
+  "frontend-api": {
+    "simulation_parameter": {
+      "max_time": {
+        "value": 20,
+        "min": 1,
+        "max": 1000,
+        "step": 1,
+        "description": "Duration of the simulation in minutes"
+      },
+      "time_step": {
+        "value": 0.1,
+        "min": 0.0001,
+        "max": 1.0,
+        "step": 0.0001,
+        "description": "Timestep size of simulation in minutes per step"
+      },
+      "output_images": {
+        "value": 5,
+        "min": 1,
+        "max": 1000,
+        "step": 1,
+        "description": "Number of images that are generated"
+      },
+      "dimensions": {
+        "value": 2,
+        "min": 2,
+        "max": 3,
+        "step": 1,
+        "description": "Dimensions the cells can move"
+      }
+    },
+    "fungal_cell": {
+      "number": {
+        "value": 10,
+        "min": 1,
+        "max": 100,
+        "step": 1,
+        "description": "Number of initial fungal cells in the simulation"
+      },
+      "radius": {
+        "value": 1.25,
+        "min": 0.1,
+        "max": 5,
+        "step": 0.1,
+        "description": "Radius of the fungal cells"
+      },
+      "use_different_colors": {
+        "value": true,
+        "description": "Whether to use different colors for different fungal cells"
+      }
+    },
+    "immune_cell": {
+      "number": {
+        "value": 10,
+        "min": 1,
+        "max": 100,
+        "step": 1,
+        "description": "Number of initial immune cells in the simulation"
+      },
+      "radius": {
+        "value": 10.6,
+        "min": 0.1,
+        "max": 20,
+        "step": 0.1,
+        "description": "Radius of the immune cells"
+      },
+      "speed": {
+        "value": 4,
+        "min": 0.0,
+        "max": 10,
+        "step": 0.1,
+        "description": "Speed of immune cell in Persistence Random Walk"
+      },
+      "persistence_time": {
+        "value": 1,
+        "min": 0.1,
+        "max": 10,
+        "step": 0.1,
+        "description": "Persistence time of immune cell in Persistence Random Walk"
+      },
+      "use_different_colors": {
+        "value": false,
+        "description": "Whether to use different colors for different immune cells"
+      }
+    }
+  }
+}

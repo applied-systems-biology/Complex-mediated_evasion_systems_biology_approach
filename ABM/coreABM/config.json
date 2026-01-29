@@ -1,0 +1,26 @@
+{
+  "Agent-Based-Framework": {
+    "runs": 5,
+    "number_of_threads": 5,
+    "seed": 2026,
+    "simulator": "SimulatorCME",
+    "config_path": "configurations/basicConfigs/basicConfigCME",
+    "output_dir": "configurations/basicConfigs/basicConfigCME",
+    "available_simulators": {
+      "Simulator": {
+        "config_path": "configurations/basicConfigs/basicConfig",
+        "output_dir": "configurations/basicConfigs/basicConfig"
+      },
+      "SimulatorHyphalGrowth": {
+        "config_path": "configurations/hyphalGrowth/basicHyphalGrowth",
+        "output_dir": "configurations/hyphalGrowth/basicHyphalGrowth"
+      },
+      "SimulatorCME": {
+        "config_path": "configurations/basicConfigs/basicConfigCME",
+        "output_dir": "configurations/basicConfigs/basicConfigCME"
+      }
+    },
+    "parameter_screening":{
+    }
+  }
+}

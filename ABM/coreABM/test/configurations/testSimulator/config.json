@@ -1,0 +1,19 @@
+{
+  "Agent-Based-Framework": {
+    "runs": 1,
+    "number_of_threads": 1,
+    "seed": 1,
+    "simulator": "Simulator",
+    "available_simulators": {
+      "Simulator": {
+        "config_path": "../../configurations/testConfigs/testSimulator",
+        "output_dir": "../../configurations/testConfigs/testSimulator"
+      }
+    },
+    "parameter_screening": {
+      "icNum": [10],
+      "fcNum": [5]
+    },
+    "screen_start_idx": 1
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "Agent-Based-Framework": {
+    "active_measurements": [
+      "population-statistics%100",
+      "total-uptake%100"
+    ],
+    "cell_state_count": []
+  }
+}

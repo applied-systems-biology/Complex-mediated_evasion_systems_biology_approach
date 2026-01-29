@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -O3 -DNDEBUG -shared -Wl,-soname,libvisualisation.so -o libvisualisation.so CMakeFiles/visualisation.dir/PovFile.cpp.o CMakeFiles/visualisation.dir/PovRayObject.cpp.o CMakeFiles/visualisation.dir/Visualizer.cpp.o  /usr/lib/gcc/x86_64-linux-gnu/13/libgomp.so /usr/lib/x86_64-linux-gnu/libpthread.a 
