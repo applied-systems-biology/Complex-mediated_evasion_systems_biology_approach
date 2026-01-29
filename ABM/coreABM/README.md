@@ -18,9 +18,9 @@ The main purpose of this framework includes simulating host-pathogen interaction
 
 In this application, we focus on simulating an immune evasion mechanism employed by the fungus _Candida albicans_ to protect itself against human antimicrobial peptides.
 
-![](ABM_sim_example.png "Simulation in 3D").
+![](ABM_sim_example.png "Simulation in 3D")
 
-Example of a simulation of Complex-mediated evasion. 
+Example of a simulation of complex-mediated evasion, with the pathogen represented as a sphere (yellow), and molecules diffusing in the system.
 
 ## Requirements
 
