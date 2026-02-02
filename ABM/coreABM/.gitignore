@@ -1,12 +1,7 @@
 cmake-*
+build/*
 .idea/
 configurations/basicConfigs/basicConfig/results*
 configurations/basicConfigs/basicConfigExample/results*
 configurations/basicConfigs/basicConfigCME/results*
-configurations/basicConfigs/basicConfigWBIA/results*
-configurations/basicConfigs/basicConfigWBIA_5rpm/results*
-configurations/basicConfigs/basicConfigWBIA_10rpm/results*
-configurations/basicConfigs/basicConfigWBIA_20rpm/results*
-configurations/basicConfigs/basicConfigWBIA_30rpm/results*
-configurations/basicConfigs/basicConfigWBIA_hABM/results*
-configurations/basicConfigs/basicConfig_WBIA_CGD/results*
+

@@ -1,0 +1,678 @@
+---
+title: "LL37 cell death"
+author: "C-M Svensson"
+date: "2025-02-28"
+output:
+  html_document:
+    df_print: paged
+---
+
+## License
+Copyright by Dr. Carl-Magnus Svensson, 02 Februari, 2026
+
+Research Group Applied Systems Biology - Head: Prof. Dr. Marc Thilo Figge https://www.leibniz-hki.de/en/applied-systems-biology.html HKI-Center for Systems Biology of Infection Leibniz Institute for Natural Product Research and Infection Biology - Hans Knöll Insitute (HKI) Adolf-Reichwein-Straße 23, 07745 Jena, Germany
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+```{r setup, include=FALSE}
+  rm(list = ls())
+  knitr::opts_chunk$set(echo = TRUE, fig.width = 12, fig.height = 12)
+  library(dplyr)
+  library(ggplot2)
+  library(caret)
+  library(janitor)
+  library(stringr)
+```
+
+
+```{r set_theme, results='hide', warning=FALSE, echo=FALSE}
+ my_theme <- function() {
+    theme_minimal() +
+    theme(panel.grid.major = element_blank(),
+                 panel.grid.minor = element_blank(),
+                 panel.border = element_blank(),
+                 panel.background = element_blank(),
+                 legend.position = "bottom",
+                 axis.line = element_line(colour = "black"),
+                 plot.title = element_text(size = 22),
+                 legend.title = element_text(size = 14
+                                             ),
+                 legend.text = element_text(size = 14),
+                 axis.title.x = element_text(color = "black", size = 20, angle = 0, face = "plain"),
+                 axis.title.y = element_text(color = "black", size = 20, angle = 90, face = "plain"),
+                 axis.text.x = element_text(color = "black", size = 20, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+                 axis.text.y = element_text(color = "black", size = 20, angle = 0, hjust = 0.5, vjust = 0.5, face = "plain")) 
+  }
+  
+  # Set the theme globally
+  theme_set(my_theme())
+
+  # Define a function to apply the color scale globally
+  scale_color_discrete <- function(...) scale_color_viridis_d(option = "inferno") 
+```
+
+## Data
+
+This is analysis based on the image analysis of time series microscopy of *Candida albicans* yeast cells to examine their interactions with the antimicrobial peptide LL-37. The time series data consist of 120 frames with a frame taken every 5 minutes, giving us in total 10 hours. We have  four conditions: only *C. albicans* strain CAI4, CAI4+LL-37, strain FCCa27 and FCCa27+LL-37. We have segmented yeast cells from brightfield microscopy using a fine tuned version of CellPose's 'cyto2' network. We also have PI staining indicating death of yeast cells. The segmented yeast cells were tracked using TrackMate. It was observed that dying cells disappeared from the brightfield view shortly after death, while the PI staining prevailed. Therefore, we track each yeast cell until we find positive PI staining for the first time. The cell is then ignored and the cell death event is recorded. By taking the number of detected cells at each time point and adding the cumulative sum of all death events we get the total number of cells, living and dead. The segmentation of the yeast cells are quite challenging to begin with, meaning that we do have some variation in the recorded cells from frame to frame. This is especially true in the condition with LL-37 being co-incubated with *C. albicans* as the peptide occludes a lot of the yeast cells. [TODO: evaluate the accuracy of yeast segmentation]. First we will look at the rate of death of yeast cells for the different conditions by considering the proportion of PI positive cells among all cells in the experiment as time progresses.
+
+During the analysis, both image and statistical, it became clear that replicate 4 were quite different from the other replicates. In summary, in replicate 4, the yeast cells in replicate 4 is not at all as clear in the other replicates and the LL37 objects look a lot like yeast cells. In Figure 1 I have included four frames from different conditions/replicates. There we clearly see how replicate 4 (Figure 1, lower row) has much worse segmentation of yeast cells than the examples from replicate 1 (Figure 1, upper row). Replicates 2 and 3 also look very similar to replicate 1. When we looked at the results in cell death, the results were very different from the other replicates. This can be attributed to the poor segmentation of yeast cells in replicate 4, especially the fact that we have an extreme amount of false positives in the condition FCCa27+LL37. We do not at all have this amount of false positives for CAI4+LL37. As we are finding many object that are not yeast cells in FCCa27+LL37 we will not capture the correct rate of death as we are looking at the "wrong" objects. Because of this, I have chosen to leave out replicate 4 entirely from the statistical analysis. This will naturally hurt the statistical power of the analysis, but the strange change in imaging quality will most likely be decremental to this anyway. 
+
+<figure style="text-align: center;">
+  <table style="margin: auto;">
+    <tr>
+      <td style="padding:10px;">
+        <img src="../LL37 results/CAI4_LL37_rep1.png" width="400"/>
+      </td>
+      <td style="padding:10px;">
+        <img src="../LL37 results/FCCa27_LL37_rep1.png" width="400"/>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:10px;">
+        <img src="../LL37 results/CAI4_LL37_rep4.png" width="400"/>
+      </td>
+      <td style="padding:10px;">
+        <img src="../LL37 results/FCCa27_LL37_rep4.png" width="400"/>
+      </td>
+    </tr>
+  </table>
+  <figcaption style="margin-top: 10px;">Figure 1: Top row is example frames from replicate 1 and the lower row is from replicate 4. The left column is the condition CAI4+LL37 and the right column is FCCa27+LL37. In all frames we have the resulting segmentation of yeast cells using CellPose implemented in JIPipe.</figcaption>
+</figure>
+
+
+```{r load_data_CAI, results='hide', warning=FALSE, echo=FALSE}
+## Replicate 1
+CAI4_rep1 <- read.csv("../LL37 results/20241106_LL-37_s1.ome_track_spots.csv")
+CAI4_rep1$PI_positive <- as.numeric(CAI4_rep1$PI.mean > 900)
+
+CAI4_rep1 <- CAI4_rep1 %>% arrange(T)
+
+CAI4_rep1 <- CAI4_rep1 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+CAI4_rep1_summary <- CAI4_rep1  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+CAI4_rep1_summary$N_PI_events <- cumsum(CAI4_rep1_summary$N_PI_events) 
+
+CAI4_rep1_summary$Condition <- "CAI4"
+CAI4_rep1_summary$Replicate <- 1
+
+## Replicate 2
+CAI4_rep2 <- read.csv("../LL37 results/20241108_LL-37_s1.ome_track_spots.csv")
+CAI4_rep2$PI_positive <- as.numeric(CAI4_rep2$PI.mean > 900)
+
+CAI4_rep2 <- CAI4_rep2 %>% arrange(T)
+
+CAI4_rep2 <- CAI4_rep2 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+CAI4_rep2_summary <- CAI4_rep2  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+CAI4_rep2_summary$N_PI_events <- cumsum(CAI4_rep2_summary$N_PI_events) 
+
+CAI4_rep2_summary$Condition <- "CAI4"
+CAI4_rep2_summary$Replicate <- 2
+
+## Replicate 3
+CAI4_rep3 <- read.csv("../LL37 results/20241111_LL-37_s3.ome_track_spots.csv")
+CAI4_rep3$PI_positive <- as.numeric(CAI4_rep3$PI.mean > 900)
+
+CAI4_rep3 <- CAI4_rep3 %>% arrange(T)
+
+CAI4_rep3 <- CAI4_rep3 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+CAI4_rep3_summary <- CAI4_rep3  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+CAI4_rep3_summary$N_PI_events <- cumsum(CAI4_rep3_summary$N_PI_events) 
+
+CAI4_rep3_summary$Condition <- "CAI4"
+CAI4_rep3_summary$Replicate <- 3
+
+
+## Replicate 4
+CAI4_rep4 <- read.csv("../LL37 results/20241113_LL-37_s3.ome_track_spots.csv")
+CAI4_rep4$PI_positive <- as.numeric(CAI4_rep4$PI.mean > 900)
+
+CAI4_rep4 <- CAI4_rep4 %>% arrange(T)
+
+CAI4_rep4 <- CAI4_rep4 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+CAI4_rep4_summary <- CAI4_rep4  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+CAI4_rep4_summary$N_PI_events <- cumsum(CAI4_rep4_summary$N_PI_events) 
+
+CAI4_rep4_summary$Condition <- "CAI4"
+CAI4_rep4_summary$Replicate <- 4
+
+CAI4 <- bind_rows(CAI4_rep1_summary, CAI4_rep2_summary, CAI4_rep3_summary, CAI4_rep4_summary)
+```
+
+
+```{r load_data_CAI_LL37, results='hide', warning=FALSE, echo=FALSE}
+## Replicate 1
+CAI4_LL37_rep1 <- read.csv("../LL37 results/20241106_LL-37_s2.ome_track_spots.csv")
+CAI4_LL37_rep1$PI_positive <- as.numeric(CAI4_LL37_rep1$PI.mean > 900)
+
+CAI4_LL37_rep1 <- CAI4_LL37_rep1 %>% arrange(T)
+
+CAI4_LL37_rep1 <- CAI4_LL37_rep1 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+CAI4_LL37_rep1_summary <- CAI4_LL37_rep1  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+CAI4_LL37_rep1_summary$N_PI_events <- cumsum(CAI4_LL37_rep1_summary$N_PI_events) 
+
+CAI4_LL37_rep1_summary$Condition <- "CAI4+LL37"
+CAI4_LL37_rep1_summary$Replicate <- 1
+
+## Replicate 2
+CAI4_LL37_rep2 <- read.csv("../LL37 results/20241108_LL-37_s2.ome_track_spots.csv")
+CAI4_LL37_rep2$PI_positive <- as.numeric(CAI4_LL37_rep2$PI.mean > 900)
+
+CAI4_LL37_rep2 <- CAI4_LL37_rep2 %>% arrange(T)
+
+CAI4_LL37_rep2 <- CAI4_LL37_rep2 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+CAI4_LL37_rep2_summary <- CAI4_LL37_rep2  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+CAI4_LL37_rep2_summary$N_PI_events <- cumsum(CAI4_LL37_rep2_summary$N_PI_events) 
+
+CAI4_LL37_rep2_summary$Condition <- "CAI4+LL37"
+CAI4_LL37_rep2_summary$Replicate <- 2
+
+## Replicate 3
+CAI4_LL37_rep3 <- read.csv("../LL37 results/20241111_LL-37_s4.ome_track_spots.csv")
+CAI4_LL37_rep3$PI_positive <- as.numeric(CAI4_LL37_rep3$PI.mean > 900)
+
+CAI4_LL37_rep3 <- CAI4_LL37_rep3 %>% arrange(T)
+
+CAI4_LL37_rep3 <- CAI4_LL37_rep3 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+CAI4_LL37_rep3_summary <- CAI4_LL37_rep3  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+CAI4_LL37_rep3_summary$N_PI_events <- cumsum(CAI4_LL37_rep3_summary$N_PI_events) 
+
+CAI4_LL37_rep3_summary$Condition <- "CAI4+LL37"
+CAI4_LL37_rep3_summary$Replicate <- 3
+
+
+## Replicate 4
+CAI4_LL37_rep4 <- read.csv("../LL37 results/20241113_LL-37_s4.ome_track_spots.csv")
+CAI4_LL37_rep4$PI_positive <- as.numeric(CAI4_LL37_rep4$PI.mean > 900)
+
+CAI4_LL37_rep4 <- CAI4_LL37_rep4 %>% arrange(T)
+
+CAI4_LL37_rep4 <- CAI4_LL37_rep4 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+CAI4_LL37_rep4_summary <- CAI4_LL37_rep4  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+CAI4_LL37_rep4_summary$N_PI_events <- cumsum(CAI4_LL37_rep4_summary$N_PI_events) 
+
+CAI4_LL37_rep4_summary$Condition <- "CAI4+LL37"
+CAI4_LL37_rep4_summary$Replicate <- 4
+
+CAI4_LL37 <- bind_rows(CAI4_LL37_rep1_summary, CAI4_LL37_rep2_summary, CAI4_LL37_rep3_summary, CAI4_LL37_rep4_summary)
+```
+
+
+```{r load_data_FCCa27_LL37, results='hide', warning=FALSE, echo=FALSE}
+## Replicate 1
+FCCa27_LL37_rep1 <- read.csv("../LL37 results/20241106_LL-37_s3.ome_track_spots.csv")
+FCCa27_LL37_rep1$PI_positive <- as.numeric(FCCa27_LL37_rep1$PI.mean > 900)
+
+FCCa27_LL37_rep1 <- FCCa27_LL37_rep1 %>% arrange(T)
+
+FCCa27_LL37_rep1 <- FCCa27_LL37_rep1 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+FCCa27_LL37_rep1_summary <- FCCa27_LL37_rep1  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+FCCa27_LL37_rep1_summary$N_PI_events <- cumsum(FCCa27_LL37_rep1_summary$N_PI_events) 
+
+FCCa27_LL37_rep1_summary$Condition <- "FCCa27+LL37"
+FCCa27_LL37_rep1_summary$Replicate <- 1
+
+## Replicate 2
+FCCa27_LL37_rep2 <- read.csv("../LL37 results/20241108_LL-37_s3.ome_track_spots.csv")
+FCCa27_LL37_rep2$PI_positive <- as.numeric(FCCa27_LL37_rep2$PI.mean > 900)
+
+FCCa27_LL37_rep2 <- FCCa27_LL37_rep2 %>% arrange(T)
+
+FCCa27_LL37_rep2 <- FCCa27_LL37_rep2 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+FCCa27_LL37_rep2_summary <- FCCa27_LL37_rep2  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+FCCa27_LL37_rep2_summary$N_PI_events <- cumsum(FCCa27_LL37_rep2_summary$N_PI_events) 
+
+FCCa27_LL37_rep2_summary$Condition <- "FCCa27+LL37"
+FCCa27_LL37_rep2_summary$Replicate <- 2
+
+## Replicate 3
+FCCa27_LL37_rep3 <- read.csv("../LL37 results/20241111_LL-37_s1.ome_track_spots.csv")
+FCCa27_LL37_rep3$PI_positive <- as.numeric(FCCa27_LL37_rep3$PI.mean > 900)
+
+FCCa27_LL37_rep3 <- FCCa27_LL37_rep3 %>% arrange(T)
+
+FCCa27_LL37_rep3 <- FCCa27_LL37_rep3 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+FCCa27_LL37_rep3_summary <- FCCa27_LL37_rep3  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+FCCa27_LL37_rep3_summary$N_PI_events <- cumsum(FCCa27_LL37_rep3_summary$N_PI_events) 
+
+FCCa27_LL37_rep3_summary$Condition <- "FCCa27+LL37"
+FCCa27_LL37_rep3_summary$Replicate <- 3
+
+
+## Replicate 4
+FCCa27_LL37_rep4 <- read.csv("../LL37 results/20241113_LL-37_s1.ome_track_spots.csv")
+FCCa27_LL37_rep4$PI_positive <- as.numeric(FCCa27_LL37_rep4$PI.mean > 900)
+
+FCCa27_LL37_rep4 <- FCCa27_LL37_rep4 %>% arrange(T)
+
+FCCa27_LL37_rep4 <- FCCa27_LL37_rep4 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+FCCa27_LL37_rep4_summary <- FCCa27_LL37_rep4  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+FCCa27_LL37_rep4_summary$N_PI_events <- cumsum(FCCa27_LL37_rep4_summary$N_PI_events) 
+
+FCCa27_LL37_rep4_summary$Condition <- "FCCa27+LL37"
+FCCa27_LL37_rep4_summary$Replicate <- 4
+
+FCCa27_LL37 <- bind_rows(FCCa27_LL37_rep1_summary, FCCa27_LL37_rep2_summary, FCCa27_LL37_rep3_summary, FCCa27_LL37_rep4_summary)
+```
+
+```{r load_data_FCCa27, results='hide', warning=FALSE, echo=FALSE}
+## Replicate 1
+FCCa27_rep1 <- read.csv("../LL37 results/20241106_LL-37_s4.ome_track_spots.csv")
+FCCa27_rep1$PI_positive <- as.numeric(FCCa27_rep1$PI.mean > 900)
+
+FCCa27_rep1 <- FCCa27_rep1 %>% arrange(T)
+
+FCCa27_rep1 <- FCCa27_rep1 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+FCCa27_rep1_summary <- FCCa27_rep1  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+FCCa27_rep1_summary$N_PI_events <- cumsum(FCCa27_rep1_summary$N_PI_events) 
+
+FCCa27_rep1_summary$Condition <- "FCCa27"
+FCCa27_rep1_summary$Replicate <- 1
+
+## Replicate 2
+FCCa27_rep2 <- read.csv("../LL37 results/20241108_LL-37_s4.ome_track_spots.csv")
+FCCa27_rep2$PI_positive <- as.numeric(FCCa27_rep2$PI.mean > 900)
+
+FCCa27_rep2 <- FCCa27_rep2 %>% arrange(T)
+
+FCCa27_rep2 <- FCCa27_rep2 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+FCCa27_rep2_summary <- FCCa27_rep2  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+FCCa27_rep2_summary$N_PI_events <- cumsum(FCCa27_rep2_summary$N_PI_events) 
+
+FCCa27_rep2_summary$Condition <- "FCCa27"
+FCCa27_rep2_summary$Replicate <- 2
+
+## Replicate 3
+FCCa27_rep3 <- read.csv("../LL37 results/20241111_LL-37_s2.ome_track_spots.csv")
+FCCa27_rep3$PI_positive <- as.numeric(FCCa27_rep3$PI.mean > 900)
+
+FCCa27_rep3 <- FCCa27_rep3 %>% arrange(T)
+
+FCCa27_rep3 <- FCCa27_rep3 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+FCCa27_rep3_summary <- FCCa27_rep3  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+FCCa27_rep3_summary$N_PI_events <- cumsum(FCCa27_rep3_summary$N_PI_events) 
+
+FCCa27_rep3_summary$Condition <- "FCCa27"
+FCCa27_rep3_summary$Replicate <- 3
+
+
+## Replicate 4
+FCCa27_rep4 <- read.csv("../LL37 results/20241113_LL-37_s2.ome_track_spots.csv")
+FCCa27_rep4$PI_positive <- as.numeric(FCCa27_rep4$PI.mean > 900)
+
+FCCa27_rep4 <- FCCa27_rep4 %>% arrange(T)
+
+FCCa27_rep4 <- FCCa27_rep4 %>%
+  arrange(Track.ID, T) %>%                          # Ensure rows are ordered by Track and T
+  group_by(Track.ID) %>%
+  mutate(first_PI_pos = which(PI_positive == 1)[1]) %>%  # Find first occurrence index
+  filter(row_number() <= first_PI_pos | is.na(first_PI_pos)) %>%  # Keep up to first occurrence
+  select(-first_PI_pos) %>%                      # Clean up helper column
+  ungroup()
+
+FCCa27_rep4_summary <- FCCa27_rep4  %>%
+    group_by(T) %>%
+  summarise(N_cells = n(), N_PI_events = sum(PI_positive))
+
+FCCa27_rep4_summary$N_PI_events <- cumsum(FCCa27_rep4_summary$N_PI_events) 
+
+FCCa27_rep4_summary$Condition <- "FCCa27"
+FCCa27_rep4_summary$Replicate <- 4
+
+FCCa27 <- bind_rows(FCCa27_rep1_summary, FCCa27_rep2_summary, FCCa27_rep3_summary, FCCa27_rep4_summary)
+```
+
+As timing of the frames I used the meta data from the provided time series files. I recorded the start and end times of each replicate and rounded them to the nearest five minute time points. I have summarized the times in the table below.
+
+<table style="border-collapse: collapse; width: 100%;">
+  <!-- Header Row -->
+  <tr>
+    <th style="border: 1px solid black; padding: 8px;"></th>
+    <th style="border: 1px solid black; padding: 8px;">Start time (min)</th>
+    <th style="border: 1px solid black; padding: 8px;">End time (min)</th>
+  </tr>
+  
+  <!-- Data Rows -->
+  <tr>
+    <td style="border: 1px solid black; padding: 8px; font-weight: bold;">Replicate 1</td>
+    <td style="border: 1px solid black; padding: 8px;">145</td>
+    <td style="border: 1px solid black; padding: 8px;">740</td>
+  </tr>
+  
+  <tr>
+    <td style="border: 1px solid black; padding: 8px; font-weight: bold;">Replicate 2</td>
+    <td style="border: 1px solid black; padding: 8px;">355</td>
+    <td style="border: 1px solid black; padding: 8px;">505</td>
+  </tr>
+  
+  <tr>
+    <td style="border: 1px solid black; padding: 8px; font-weight: bold;">Replicate 3</td>
+    <td style="border: 1px solid black; padding: 8px;">180</td>
+    <td style="border: 1px solid black; padding: 8px;">775</td>
+  </tr>
+  
+  <tr>
+    <td style="border: 1px solid black; padding: 8px; font-weight: bold;">Replicate 4</td>
+    <td style="border: 1px solid black; padding: 8px;">115</td>
+    <td style="border: 1px solid black; padding: 8px;">710</td>
+  </tr>
+</table>
+```{r calculate_survival_prob, echo=FALSE}
+PI_df <- bind_rows(CAI4, CAI4_LL37, FCCa27, FCCa27_LL37)
+
+PI_df$N_cells_tot <- PI_df$N_cells + PI_df$N_PI_events
+PI_df$PI_ratio <- PI_df$N_PI_events/PI_df$N_cells_tot
+PI_df$Survival <- 1-PI_df$PI_ratio
+
+PI_df <- PI_df %>% filter(Replicate != 4)
+PI_df$Time <- 0
+PI_df <- PI_df %>% mutate(Time = ifelse(Replicate == 1, 145 + 5 * T, Time))
+PI_df <- PI_df %>% mutate(Time = ifelse(Replicate == 2, 355 + 5 * T, Time))
+PI_df <- PI_df %>% mutate(Time = ifelse(Replicate == 3, 180 + 5 * T, Time))
+PI_df <- PI_df %>% mutate(Time = ifelse(Replicate == 4, 115 + 5 * T, Time))
+
+PI_df_plot <- PI_df  %>%
+    group_by(Condition, Time) %>%
+    summarise(PI_ratio_mean = mean(PI_ratio), PI_ratio_std = sd(PI_ratio), 
+              Survival_mean = mean(Survival), Survival_std = sd(Survival), 
+              .groups="drop")
+
+#PI_df_plot$Time = PI_df_plot$Frame*5
+```
+
+## Survival analysis
+Average ratio of surviving *C. albicans* cells as a function of time for the different  conditions and replicates are plotted below in Figure 2. We see that CAI4 and FCCA27 survival is practically 100% for the entirety of the 10 hours of analysis. When adding LL-37, the survival drop radically for both strains with a tendency of LL37 dying more and faster.
+```{r plot_, echo=FALSE, fig.cap="Figure 2: Survival of yeast cells over time under different conditions and replicates."}
+p <- ggplot(PI_df, aes(x=Time,y=Survival, colour = Condition, linetype = factor(Replicate))) + geom_line() + my_theme() + xlab("time (min)") + ylab("Suviving yeast cells")
+p
+```
+
+
+We assume that the the death of the cells follow a linear death process. In the process, we 
+will consider the survival probability by setting the initial population to $n_0=1$. In a linear death process we have that the expected value of having $N$ alive 
+subjects at time $t$ is described by the expression $E[N(t)]=n_0 \exp(-\mu t)$. We interpret the ratio of surviving yeast cells ($E[N(t)]=SY$) as this expected value instead of 
+discrete cells. Therefore, we can directly determine the death rate as $\mu = -\frac{\log(SY)}{t}$. In Figure 3 I have plotted the average survival curves for each condition (solid curves). We can fit survival as seen below in dashed lines and the standard deviation of the fits is show as shaded regions. We see that the death of FCCa27+LL37 is the highest while the death rate of both strains without LL37 is negiable.
+```{r death_prob, echo=FALSE, fig.cap="Figure 3: Average survival of yeast cells over time. The solid lines are the average survival based on the data in Figure 2 and the dashed line is the average survival according to the fitted death rates. The shaded region is the standard deviation of the three fitted decays."}
+  #PI_df$Time = PI_df$Frame*5 
+
+  PI_df$mu = -log(PI_df$Survival)/PI_df$Time
+  write.csv(PI_df, "../LL37 results/death_rates_all_times.csv", row.names = FALSE)  
+  PI_df_mu <- PI_df %>% group_by(Condition, Replicate) %>%
+    summarise(mu = mean(mu, na.rm=TRUE), 
+              .groups="drop")
+
+  comparisons <- list(
+  c("CAI4", "CAI4+LL37"), 
+  c("FCCa27", "FCCa27+LL37"),
+  c("CAI4", "FCCa27+LL37"),
+  c("CAI4", "FCCa27"),
+  c("FCCa27", "CAI4+LL37")
+  )
+  # Merge PI_df_mu into PI_df based on Condition and Replicate
+  
+  PI_df <- PI_df %>%
+    select(-mu) %>%  # Remove the existing mu column (to avoid duplication)
+    left_join(PI_df_mu, by = c("Condition", "Replicate"))
+
+library(tidyr)
+
+  # If you want the full range across the entire dataframe:
+  full_time_range <- seq(145,775, by=5)#range(PI_df$Time)
+
+#  Or you can define it manually:
+  # full_time_range <- c(1, 11)
+
+  PI_df_completed <- PI_df %>%
+    group_by(Condition, Replicate, mu) %>%
+    complete(Time = full_time_range) %>%  # Fills in missing Time values
+    ungroup()
+
+  
+  PI_df$Fit = exp(-PI_df$mu*PI_df$Time)
+  PI_df_completed$Fit = exp(-PI_df_completed$mu*PI_df_completed$Time)
+  
+
+  PI_df_plot <- PI_df  %>%
+    group_by(Condition, Time) %>%
+    summarise(PI_ratio_mean = mean(PI_ratio), PI_ratio_std = sd(PI_ratio), 
+              Survival_mean = mean(Survival), Survival_std = sd(Survival), 
+              Fit_mean = mean(Fit), Fit_std = sd(Fit),                             
+              .groups="drop") 
+  
+  PI_df_completed_plot <- PI_df_completed  %>%
+    group_by(Condition, Time) %>%
+    summarise(Fit_mean = mean(Fit), Fit_std = sd(Fit),                             
+              .groups="drop") 
+  
+  
+  
+  p <- ggplot(PI_df_plot, aes(x = Time, y = Survival_mean, colour = Condition)) + 
+  
+  # First line from PI_df_plot (inherits global aes)
+  geom_line() +
+  
+  # Second line from PI_df_completed_plot (explicit aes, no inheritance)
+  geom_line(
+    data = PI_df_completed_plot,
+    mapping = aes(x = Time, y = Fit_mean, colour = Condition, linetype = "Fit")
+  ) +
+  
+  # Ribbon from PI_df_completed_plot (explicit aes, no inheritance)
+  geom_ribbon(
+    data = PI_df_completed_plot,
+    mapping = aes(x = Time, ymin = Fit_mean - Fit_std, ymax = Fit_mean + Fit_std, fill = Condition),
+    inherit.aes = FALSE,  # Turn off inheritance to avoid the Survival_mean problem
+    alpha = 0.2
+  ) +
+  
+  # Theme and labels
+  my_theme() +
+  xlab("Time (min)") +
+  ylab("Surviving yeast cells") +
+  
+  # Customize linetype legend
+  scale_linetype_manual(values = c("Fit" = "dashed"))
+  p
+  
+  write.csv(PI_df_mu, "../LL37 results/death_rates.csv", row.names = FALSE)
+  
+```
+
+We can quantify the survival better by looking at the distribution of the parameter $\mu$ for the different conditions across the replicates. In Figure 4 this is expressed as box plot with significance levels. Significance was calculated using a paired t-test and in the plot the raw, uncorrected p-values are given. 
+
+```{r plot_mu, echo=FALSE, fig.cap="Figure 4: Distribution of the rate of death parameter for across three replicates for the four different conditions. The significance values are claculated with at two-sided t-test."}
+library(ggplot2)
+library(latex2exp)
+library(ggpubr)  # For significance indicators
+
+# Define the comparisons you want to test
+comparisons <- list(
+  c("CAI4", "CAI4+LL37"), 
+  c("CAI4", "FCCa27"),
+  c("CAI4", "FCCa27+LL37"),
+  c("CAI4+LL37", "FCCa27"),
+  c("CAI4+LL37", "FCCa27+LL37"),
+  c("FCCa27", "FCCa27+LL37")
+)
+
+# Create the boxplot with significance indicators
+p <- ggplot(PI_df_mu, aes(x = Condition, y = mu, colour = Condition)) + 
+  geom_boxplot(outlier.shape = NA) +  
+  geom_jitter(width = 0.2, alpha = 0.6, size = 4) +  
+  my_theme() +  
+  xlab("Condition") +  
+  ylab(TeX("$\\mu$")) +  
+  stat_compare_means(comparisons = comparisons, method = "t.test", label = "p.format", paired = FALSE)  # Add significance brackets
+
+p
+
+```
+
+To use a more appropriate test, we use ANOVA for the between group variance and Tukey's HSD post-hoc test for the family-wise error rate. The findings are summarized in Figure 5 and support the finding that all differences seen in Figures 3 and 4 are significant except for the comparison of the two untreated strains (CAI4 and FCCa27).
+```{r correction, echo=FALSE, fig.cap="Figure 5: Significances calculated by ANOVA and Tukey's HSD post-hoc test."}
+  anova_result <- aov(mu ~ Condition, data = PI_df_mu)
+  summary(anova_result)
+  tukey_result <- TukeyHSD(anova_result)
+  #tukey_result
+  plot(tukey_result)
+```
