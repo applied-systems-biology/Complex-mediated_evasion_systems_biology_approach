@@ -17,13 +17,12 @@ Adolf-Reichwein-Straße 23
 
 **Contributions**: Yann Bachelot, Carl-Magnus Svensson, Christoph Saffer, Paul Rudolph
 
-## License
-This project is licensed under the **BSD 2-Clause License**.  
-See the `LICENSE` file for details.
+## License 
+See the `LICENSE` files within each folder for details.
 
 ## Repository structure
-- **`ABM/`** — Agent-based model (ABM) framework and simulation code.
-- **`Image_analysis/`** — Pipelines for image analysis.
+- **`ABM/`** — Agent-based model (ABM) framework.
+- **`Image_analysis/`** — Files related to the image analysis.
 
 ## Related repository (PDE model)
 The PDE model is maintained in a separate repository: https://github.com/applied-systems-biology/AMP_evasion_PDE_model.git  
