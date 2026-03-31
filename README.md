@@ -1,7 +1,7 @@
 # Complex-mediated evasion systems biology approach
 
-This repository contains the code used for data analysis in the publication:\
-**Modeling *Candida albicans* complex-mediated evasion and in silico treatment strategies: a systems biology approach** (submitted)
+This repository contains the code used for data analysis in the following study (submitted):\
+**Hijacking the hijacker: Simulation-guided drug targeting of Msb2\* reverses complex-mediated immune evasion in *Candida albicans***
 
 Yann Bachelot, Carl-Magnus Svensson, Anastasia Solomatina, Josephine Schötz, Kerstin Hünniger-Ast, Oliver Kurzai, Marc Thilo Figge
 
