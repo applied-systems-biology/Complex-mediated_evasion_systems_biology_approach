@@ -15,7 +15,7 @@ Adolf-Reichwein-Straße 23
 
 **Website**: https://www.leibniz-hki.de/en/applied-systems-biology.html
 
-**Contributions**: Yann Bachelot, Carl-Magnus Svensson, Christoph Saffer, Paul Rudolph
+**Code Contributions**: Yann Bachelot, Carl-Magnus Svensson, Christoph Saffer, Paul Rudolph
 
 ## License 
 See the `LICENSE` files within each folder for details.
