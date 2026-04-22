@@ -1,7 +1,7 @@
 # Complex-mediated evasion systems biology approach
 
 This repository contains the code used for data analysis in the following study (submitted):\
-**Simulation-guided Msb2\* drug targeting reverses complex-mediated immune evasion in *Candida albicans***
+**Hijacking the hijacker: Simulation-guided drug targeting of Msb2\* reverses complex-mediated immune evasion in *Candida albicans***
 
 Yann Bachelot, Carl-Magnus Svensson, Anastasia Solomatina, Josephine Schötz, Kerstin Hünniger-Ast, Oliver Kurzai, Marc Thilo Figge
 
